@@ -1,0 +1,43 @@
+name: Deploy to AWS using CodeDeploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install AWS CLI
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y awscli
+
+    - name: Package application
+      run: |
+        zip -r codedeploy-sample.zip * -x ".git/*"
+
+    - name: Upload to S3
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: us-east-1
+      run: |
+        aws s3 cp codedeploy-sample.zip s3://your-bucket-name/
+
+    - name: Deploy with AWS CodeDeploy
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: us-east-1
+      run: |
+        aws deploy create-deployment \
+          --application-name my-codedeploy-app \
+          --deployment-group-name my-deployment-group \
+          --s3-location bucket=your-bucket-name,key=codedeploy-sample.zip,bundleType=zip \
+          --region us-east-1
